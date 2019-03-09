@@ -1,7 +1,11 @@
 package LoanPackage.model;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
+import LoanPackage.service.IbanValidator;
 import LoanPackage.service.NipValidator;
 import LoanPackage.service.PeselValidator;
 
@@ -48,15 +52,23 @@ public class Applicant {
             String pesel,
             String nip,
             String bankAccount,
-            Date dateOfBirth
+            String stringDateOfBirth
     ) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.pesel = pesel;
         this.employerNip = nip;
         this.bankAccount = bankAccount;
-        this.dateOfBirth = dateOfBirth;
+        this.dateOfBirth = this.parseDateOfBirth(stringDateOfBirth);
         this.valid = this.validateFields();
+    }
+
+    private Date parseDateOfBirth(String stringDate) {
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd").parse(stringDate);
+        } catch (ParseException e) {
+            return new Date();
+        }
     }
 
     private boolean validateFirstName() {
@@ -78,7 +90,15 @@ public class Applicant {
     }
 
     private boolean validateBankAccount() {
-        return true;
+        IbanValidator ibanValidator = new IbanValidator();
+        return ibanValidator.ibanTest(this.bankAccount);
+    }
+
+    private boolean validateDateOfBirth() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.YEAR, -18);
+        Date legalAgeDate = calendar.getTime();
+        return this.dateOfBirth.before(legalAgeDate);
     }
 
     private boolean validateFields() {
@@ -96,6 +116,9 @@ public class Applicant {
             areAllValid = false;
         }
         if (!this.validateBankAccount()) {
+            areAllValid = false;
+        }
+        if (!this.validateDateOfBirth()) {
             areAllValid = false;
         }
         return areAllValid;
